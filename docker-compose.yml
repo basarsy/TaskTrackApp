@@ -1,0 +1,32 @@
+
+version: "3.9"
+services:
+  auth:
+    build: ./AuthService
+    ports: ["5001:80"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      AUTH__JWT__ISSUER: "TaskTrackApp"
+      AUTH__JWT__AUDIENCE: "TaskTrackApp.Client"
+      AUTH__JWT__SECRET: "change-me"
+  user:
+    build: ./UserService
+    ports: ["5002:80"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DB__CONNECTIONSTRING: "Server=localhost;Database=TaskTrackUser;User Id=sa;Password=change-me;"
+  task:
+    build: ./TaskService
+    ports: ["5003:80"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DB__CONNECTIONSTRING: "Server=localhost;Database=TaskTrackTask;User Id=sa;Password=change-me;"
+  log:
+    build: ./LogService
+    ports: ["5004:80"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      LOG__LEVEL: "Information"
+networks:
+  default:
+    name: tasktrackapp-net
