@@ -6,7 +6,7 @@ using TaskService.Models;
 namespace TaskService.Controllers;
 
 
-[Route("api/{controller}")]
+[Route("api/[controller]")]
 [ApiController]
 public class TaskController : ControllerBase
 {
@@ -17,8 +17,8 @@ public class TaskController : ControllerBase
     }
 
     [HttpGet]
-    [Route("getTasks")]
-    public IActionResult GetTasks()
+    [Route("get")]
+    public async Task<IActionResult> GetTasks()
     {
         var tasks = _context.Tasks
             .Select(t => new TaskDetailsDto()
@@ -29,14 +29,19 @@ public class TaskController : ControllerBase
                 TaskDate = t.TaskDate,
                 TaskStatus = t.TaskStatus,
                 TaskPriority = t.TaskPriority
-            });
+            })
+            .ToList();
+        if (tasks.Count == 0)
+        {
+            return NotFound($"There are no tasks.");
+        }
         
         return Ok(tasks);
     }
     
     [HttpGet]
-    [Route("getTask/{taskId}")]
-    public IActionResult GetTask(int taskId)
+    [Route("get/{taskId}")]
+    public async Task<IActionResult> GetTask(int taskId)
     {
         var task = _context.Tasks
             .Where(t => t.TaskId == taskId)
@@ -47,7 +52,10 @@ public class TaskController : ControllerBase
                 TaskDescription = t.TaskDescription,
                 TaskDate = t.TaskDate
             });
-        if (task == null)
+        if (taskId != _context.Tasks
+                .Where(t => t.TaskId == taskId)
+                .Select(t => t.TaskId)
+                .FirstOrDefault())
         {
             return NotFound($"There are no task with id {taskId}.");
         }
@@ -55,7 +63,7 @@ public class TaskController : ControllerBase
     }
 
     [HttpPost]
-    [Route("createTask")]
+    [Route("create")]
     public async Task<IActionResult> CreateTask([FromBody]CreateTaskDto taskDto)
     {
         if (string.IsNullOrWhiteSpace(taskDto.TaskName))
@@ -73,7 +81,7 @@ public class TaskController : ControllerBase
             TaskName = taskDto.TaskName,
             TaskDescription = taskDto.TaskDescription,
             TaskStatus = false,
-            TaskPriority = null,
+            TaskPriority = 0,
             TaskDate = DateTime.UtcNow
         };
         
@@ -83,4 +91,82 @@ public class TaskController : ControllerBase
         
     }
     
+    [HttpDelete]
+    [Route("delete/{taskId}")]
+    public async Task<IActionResult> DeleteTask(int taskId)
+    {
+        var task = _context.Tasks
+            .FirstOrDefault(t => t.TaskId == taskId);
+        if (task == null)
+        {
+            return NotFound($"There are no task with id {taskId}.");
+        }
+        
+        _context.Tasks.Remove(task);
+        _context.SaveChanges();
+        return Ok($"Task {task.TaskName} deleted successfully.");
+    }
+
+    [HttpPut]
+    [Route("update/{taskId}")]
+    public async Task<IActionResult> UpdateTask(int taskId, [FromBody] UpdateTaskDto updateDto)
+    {
+        var task = _context.Tasks
+            .FirstOrDefault(t => t.TaskId == taskId);
+        
+        if (task == null)
+        {
+            return NotFound($"There are no task with id {taskId}.");
+        }
+        
+        task.TaskName = updateDto.TaskName;
+        task.TaskDescription = updateDto.TaskDescription;
+        
+        _context.SaveChanges();
+        return Ok($"Task {task.TaskName} updated successfully.");
+    }
+    
+    [HttpPatch]
+    [Route("prio/{taskId}")]
+    public async Task<IActionResult> PrioritizeTask(int taskId, [FromBody] PrioritizeTaskDto prioritizeDto)
+    {
+        var task = _context.Tasks
+            .FirstOrDefault(t => t.TaskId == taskId);
+        
+        if (task == null)
+        {
+            return NotFound($"There are no task with id {taskId}.");
+        }
+        if (task.TaskPriority == prioritizeDto.TaskPriority)
+        {
+            return BadRequest($"Task {task.TaskName} already has {prioritizeDto.TaskPriority} priority.");       
+        }
+        
+        task.TaskPriority = prioritizeDto.TaskPriority;
+        _context.SaveChanges();
+        
+        return Ok($"Task {task.TaskName} updated successfully updated with priority {prioritizeDto.TaskPriority}.");
+    }
+
+    [HttpPatch]
+    [Route("changeStatus/{taskId}")]
+    public async Task<IActionResult> ChangeTaskStatus(int taskId, [FromBody] UpdateTaskStatusDto updateDto)
+    {
+        var task = _context.Tasks
+            .FirstOrDefault(t => t.TaskId == taskId);
+        
+        if (task == null)
+        {
+            return NotFound($"There are no task with id {taskId}.");
+        }
+
+        if (task.TaskStatus == updateDto.TaskStatus)
+        {
+            return BadRequest($"Task {task.TaskName} already has status {updateDto.TaskStatus}.");      
+        }
+        task.TaskStatus = updateDto.TaskStatus;
+        
+        _context.SaveChanges();
+        return Ok($"Task {task.TaskName} has been completed successfully.");
+    }
 }
