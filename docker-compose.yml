@@ -14,13 +14,14 @@ services:
     ports: ["5002:80"]
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      DB__CONNECTIONSTRING: "Server=localhost;Database=TaskTrackUser;User Id=sa;Password=change-me;"
+      DB__CONNECTIONSTRING: "Server=localhost;Database=udb;User Id=postgres;Password=admin123;"
   task:
     build: ./TaskService
     ports: ["5003:80"]
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      DB__CONNECTIONSTRING: "Server=localhost;Database=TaskTrackTask;User Id=sa;Password=change-me;"
+      DB__CONNECTIONSTRING: "Server=localhost;Database=tdb;User Id=postgres;Password=admin123;"
+      SERVICES__USERSERVICEBASEURL: "http://user:80"
   log:
     build: ./LogService
     ports: ["5004:80"]

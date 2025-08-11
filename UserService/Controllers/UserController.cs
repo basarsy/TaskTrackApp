@@ -16,7 +16,7 @@ public class UserController : ControllerBase
     {
         _context = context;
     }
-    
+
     [HttpGet]
     [Route("get")]
     public async Task<IActionResult> GetUsers()
@@ -26,9 +26,10 @@ public class UserController : ControllerBase
         {
             return NotFound($"No users found.");
         }
+
         return Ok(users);
     }
-    
+
     [HttpGet]
     [Route("get/{userId}")]
     public async Task<IActionResult> GetUser(int userId)
@@ -38,7 +39,7 @@ public class UserController : ControllerBase
         {
             return NotFound($"No user found with id {userId}.");
         }
-        
+
         return Ok(user);
     }
 
@@ -54,12 +55,13 @@ public class UserController : ControllerBase
 
         var hasher = new PasswordHasher<User>();
         user.UserPassword = hasher.HashPassword(user, createDto.UserPassword);
-        
+
         _context.Users.Add(user);
         _context.SaveChanges();
+
         return Ok($"User {user.UserName} created successfully.");
     }
-    
+
     [HttpDelete]
     [Route("delete/{userId}")]
     public async Task<IActionResult> DeleteUser(int userId)
@@ -69,9 +71,10 @@ public class UserController : ControllerBase
         {
             return NotFound($"No user found with id {userId}.");
         }
-        
+
         _context.Users.Remove(user);
         _context.SaveChanges();
+
         return Ok($"User {user.UserName} deleted successfully.");
     }
 
@@ -84,13 +87,13 @@ public class UserController : ControllerBase
         {
             return NotFound($"No user found with id {userId}.");
         }
-        
+
         user.UserName = userDto.UserName;
-        
         _context.SaveChanges();
+
         return Ok($"User {user.UserName} updated his name to {userDto.UserName} successfully.");
     }
-    
+
     [HttpPatch]
     [Route("changeRole/{userId}")]
     public async Task<IActionResult> ChangeUserRole(int userId, [FromBody] UserDetailsDto userDto)
@@ -105,10 +108,23 @@ public class UserController : ControllerBase
         {
             NotFound($"No user found with id {userId}.");
         }
-        
+
         userDto.RoleType = !userDto.RoleType;
-        
         _context.SaveChanges();
+
         return Ok($"User with id {userId}'s role has been changed to {userDto.RoleType}.");
     }
-}
+
+    [HttpGet]
+    [Route("exits/{userId}")]
+    public async Task<IActionResult> Exits(int userId, string UserName)
+    {
+        var user = _context.Users.FirstOrDefault(u => u.UserId == userId);
+        if (user == null)
+        {
+            return NotFound($"No user found with id {userId}.");
+        }
+
+        return Ok(new UserExistsDto(user.UserId, user.UserName));
+    }
+}    

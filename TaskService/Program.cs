@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TaskService.Data;
+using TaskService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
+builder.Services.AddHttpClient<IUserClient, UserClient>(client =>
+{
+    var baseUrl = builder.Configuration["Services:UserServiceBaseUrl"]
+                  ?? "http://localhost:5166";
+    client.BaseAddress = new Uri(baseUrl);
+});
 
 builder.Services.AddDbContext<TaskDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

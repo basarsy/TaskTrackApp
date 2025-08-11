@@ -20,4 +20,5 @@ public class TaskItem
     
     public TaskPriority? TaskPriority { get; set; }
     public DateTime TaskDate { get; set; }
+    public int? AssignedUserId { get; set; }
 }

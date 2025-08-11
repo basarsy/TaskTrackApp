@@ -10,4 +10,5 @@ public class TaskDetailsDto
     public bool TaskStatus { get; set; }
     public TaskPriority? TaskPriority { get; set; }
     public DateTime TaskDate { get; set; }
+    public int? AssignedUserId { get; set; }
 }

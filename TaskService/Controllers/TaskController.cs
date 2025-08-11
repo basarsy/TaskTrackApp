@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using TaskService.Data;
 using TaskService.Dtos;
 using TaskService.Models;
+using TaskService.Services;
 
 namespace TaskService.Controllers;
 
@@ -169,5 +170,47 @@ public class TaskController : ControllerBase
         _context.SaveChanges();
         return Ok($"Task {task.TaskName} has been completed successfully.");
     }
-    
+
+    [HttpPost]
+    [Route("assign/{taskId}")]
+    public async Task<IActionResult> AssignTask(int taskId, [FromBody] AssignUserDto assignDto,
+        [FromServices] IUserClient userClient, CancellationToken ct)
+    {
+        var task = _context.Tasks.FirstOrDefault(t => t.TaskId == taskId);
+        if (task == null)
+        {
+            return NotFound($"Task with id {taskId} not found.");
+        }
+        
+        var user = await userClient.GetAsync(assignDto.UserId, ct);
+        if (user == null)
+        {
+            return NotFound($"User with id {assignDto.UserId} not found.");
+        }
+        if (task.AssignedUserId == assignDto.UserId)
+        {
+            return BadRequest($"Task {task.TaskName} already assigned to {assignDto.UserId}");
+        }
+        
+        task.AssignedUserId = assignDto.UserId;
+        await _context.SaveChangesAsync(ct);
+        
+        return Ok($"Task {task.TaskName} assigned successfully.");
+    }
+
+    [HttpPost]
+    [Route("unassign/{taskId}")]
+    public async Task<IActionResult> UnassignUser(int taskId, [FromBody] AssignUserDto assignDto,
+        [FromServices] IUserClient userClient, CancellationToken ct)
+    {
+        var task = _context.Tasks.FirstOrDefault(t => t.TaskId == taskId);
+        if (task == null)
+        {
+            return  NotFound($"Task with id {taskId} not found.");
+        }
+
+        task.AssignedUserId = null;
+        await _context.SaveChangesAsync(ct);
+        return Ok($"Task {task.TaskName} unassigned successfully.");
+    }
 }
