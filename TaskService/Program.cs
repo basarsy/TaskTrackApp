@@ -12,7 +12,7 @@ builder.Services.AddControllers();
 builder.Services.AddHttpClient<IUserClient, UserClient>(client =>
 {
     var baseUrl = builder.Configuration["Services:UserServiceBaseUrl"]
-                  ?? "http://localhost:5166";
+                  ?? "http://localhost:5002";
     client.BaseAddress = new Uri(baseUrl);
 });
 
@@ -20,6 +20,13 @@ builder.Services.AddDbContext<TaskDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider
+        .GetRequiredService<TaskDbContext>()
+        .Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -21,12 +21,19 @@ public class UserController : ControllerBase
     [Route("get")]
     public async Task<IActionResult> GetUsers()
     {
-        var users = _context.Users.ToList();
-        if (users == null)
+        var users = _context.Users
+            .Select(u=> new UserDetailsDto()
+            {
+                UserId = u.UserId,
+                UserName = u.UserName,
+                RoleType = u.RoleType,
+            })
+            .ToList();
+        if (users.Count==0)
         {
-            return NotFound($"No users found.");
+            return NoContent();
         }
-
+        
         return Ok(users);
     }
 
@@ -34,12 +41,23 @@ public class UserController : ControllerBase
     [Route("get/{userId}")]
     public async Task<IActionResult> GetUser(int userId)
     {
-        var user = _context.Users.FirstOrDefault(u => u.UserId == userId);
-        if (user == null)
+        var user = _context.Users
+            .Where(u => u.UserId == userId)
+            .Select(u => new UserDetailsDto()
+            {
+                UserId = u.UserId,
+                UserName = u.UserName,
+                RoleType = u.RoleType
+            })
+            .ToList();
+        if (userId != _context.Users
+                .Where(u => u.UserId == userId)
+                .Select(u => u.UserId)
+                .FirstOrDefault())
         {
-            return NotFound($"No user found with id {userId}.");
+            return NotFound($"User with {userId} not found.");
         }
-
+        
         return Ok(user);
     }
 
