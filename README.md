@@ -7,11 +7,7 @@ TaskTrackApp; görev ve kullanıcı yönetimini modüler mikroservis mimarisiyle
 
 Mimari Kapsam
 --------------
-Monorepo içinde bağımsız servisler:
-- AuthService — Kimlik doğrulama & yetkilendirme (JWT).
-- UserService — Kullanıcı yaşam döngüsü, profil yönetimi.
-- TaskService — Görev CRUD, atama, durum/öncelik akışları.
-- LogService — Uygulama log’ları için ingest & sorgulama.
+- MainService — Kullanıcı yaşam döngüsü, profil yönetimi, Görev CRUD, atama, durum/öncelik akışları.
 
 Teknolojiler
 -------------
@@ -23,7 +19,7 @@ Hızlı Başlangıç
 -----------------------------
 Her servis için tipik akış:
 1) Dizine girin:
-    - `cd AuthService`  (veya `UserService` / `TaskService` / `LogService`)
+    - `cd MainService`
 2) Bağımlılıkları indirin:
     - `dotnet restore`
 3) Derleyin:
@@ -39,10 +35,6 @@ Hızlı Başlangıç (Docker)
 
 API Yüzeyi (Örnek Taslak)
 --------------------------
-AuthService
-- POST api/auth/register
-- POST api/auth/login
-- POST api/auth/refresh
 
 UserService
   - GET api/users
@@ -57,7 +49,3 @@ TaskService
   - POST /task
   - PUT /tasks/{id}
   - DELETE /tasks/{id}
-
-LogService
-  - POST /logs
-  - GET /logs?level=&service=&from=&to=
