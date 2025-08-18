@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace MainService.Models;
+using MainService.Enums;
 
 public class UserModel
 {
@@ -8,6 +9,6 @@ public class UserModel
     public int UserId { get; set; }
     public string UserName { get; set; }
     public string UserPassword { get; set; }
-    public bool RoleType { get; set; }
+    public RoleType RoleType { get; set; }
     public bool TaskStatus { get; set; }
 }

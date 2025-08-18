@@ -1,12 +1,14 @@
 using MainService.Data;
 using MainService.Dtos;
 using MainService.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace MainService.Controllers;
 
+[Authorize(Roles = "Admin")]
 [ApiController]
 [Route("api/[controller]")]
 
@@ -26,7 +28,7 @@ public class UserController : ControllerBase
         var user = new UserModel()
         {
             UserName = createDto.UserName,
-            RoleType = false
+            RoleType = createDto.RoleType
         };
         if (createDto.UserName == _context.Users.Select(u => u.UserName).FirstOrDefault())
         {

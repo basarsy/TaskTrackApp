@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using MainService.Models;
 using Microsoft.IdentityModel.Tokens;
 
 namespace MainService.Services;
@@ -12,7 +13,7 @@ public class JwtTokenService
     {
         _configuration = configuration;
     }
-    public string GenerateToken()
+    public string GenerateToken(UserModel user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.GetValue<string>("SecretKey")));
@@ -21,7 +22,9 @@ public class JwtTokenService
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, "MainService"),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Role, user.RoleType.ToString())
         };
 
         var token = new JwtSecurityToken(

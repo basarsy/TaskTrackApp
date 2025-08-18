@@ -1,6 +1,9 @@
+using MainService.Models;
+
 namespace MainService.Dtos;
+using MainService.Enums;
 
 public class UpdateRoleDto
 {
-    public bool RoleType { get; set; }
+    public RoleType RoleType { get; set; }
 }

@@ -27,11 +27,6 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login(UserAuthDto authDto)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == authDto.UserName);
-        if (user == null)
-        {
-            return Unauthorized();
-        }
-        
         var hasher = new PasswordHasher<UserModel>();
         var result = hasher.VerifyHashedPassword(user, user.UserPassword, authDto.UserPassword);
         if (result != PasswordVerificationResult.Success)
@@ -39,10 +34,10 @@ public class AuthController : ControllerBase
             return Unauthorized("Username or password is incorrect.");
         }
 
-        var token = _tokenService.GenerateToken();
+        var token = _tokenService.GenerateToken(user);
         return Ok(token);
     }
-
+    
     [Authorize]
     [HttpGet]
     [Route("authtest")]

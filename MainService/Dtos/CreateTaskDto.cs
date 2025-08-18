@@ -9,4 +9,5 @@ public class CreateTaskDto
     public string TaskDescription { get; set; }
     public bool TaskStatus { get; set; }
     public TaskPriority? TaskPriority { get; set; }
+    public int? UserId { get; set; }
 }

@@ -2,6 +2,7 @@ using MainService.Data;
 using MainService.Dtos;
 using MainService.Models;
 using MainService.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -19,6 +20,7 @@ public class TaskController : ControllerBase
         _context = context;
     }
 
+    [Authorize]
     [HttpPost]
     [Route("create")]
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto taskDto, CancellationToken ct = default)
@@ -37,6 +39,7 @@ public class TaskController : ControllerBase
         return Ok($"Task {task.TaskName} created successfully.");
     }
 
+    [Authorize]
     [HttpDelete]
     [Route("delete/{taskId:int}")]
     public async Task<IActionResult> DeleteTask(int taskId, CancellationToken ct = default)
@@ -54,6 +57,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with id {task.TaskId} has been deleted successfully.");       
     }
     
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     [Route("get")]
     public async Task<IActionResult> GetTasks(CancellationToken ct = default)
@@ -66,7 +70,8 @@ public class TaskController : ControllerBase
                 TaskDescription = t.TaskDescription,
                 TaskDate = t.TaskDate,
                 TaskStatus = t.IsTaskCompleted,
-                TaskPriority = t.TaskPriority
+                TaskPriority = t.TaskPriority,
+                UserId = t.UserId
             })
             .ToListAsync(ct);
 
@@ -77,6 +82,7 @@ public class TaskController : ControllerBase
         return Ok(tasks);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     [Route("/get/{taskId:int}")]
     public async Task<IActionResult> GetTask(int taskId, CancellationToken ct = default)
@@ -90,8 +96,8 @@ public class TaskController : ControllerBase
                 TaskDescription = t.TaskDescription,
                 TaskDate = t.TaskDate,
                 TaskStatus = t.IsTaskCompleted,
-                TaskPriority = t.TaskPriority
-                
+                TaskPriority = t.TaskPriority,
+                UserId = t.UserId
             })
             .ToListAsync(ct);
         
@@ -104,7 +110,32 @@ public class TaskController : ControllerBase
         }
         return Ok(task);
     }
+
+    [HttpGet]
+    [Route("gettasksbyuser/{userId:int}")]
+    public async Task<IActionResult> GetTasksByUser(int userId, CancellationToken ct = default)
+    {
+        var tasks = await _context.Tasks
+            .Where(u => u.UserId == userId)
+            .Select(t => new TaskDetailsDto()
+            {
+                TaskId = t.TaskId,
+                TaskName = t.TaskName,
+                TaskDescription = t.TaskDescription,
+                TaskDate = t.TaskDate,
+                TaskStatus = t.IsTaskCompleted,
+                TaskPriority = t.TaskPriority,
+                UserId = t.UserId
+            })
+            .ToListAsync(ct);
+        if (tasks.Count == 0)
+        {
+            return NotFound($"There are no tasks for user with id {userId}.");
+        }
+        return Ok(tasks);
+    }
     
+    [Authorize]
     [HttpPut]
     [Route("update/{taskId:int}")]
     public async Task<IActionResult> UpdateTask(int taskId, TaskDetailsDto updateDto, CancellationToken ct = default)
@@ -124,6 +155,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with {task.TaskId} updated successfully.");
     }
     
+    [Authorize]
     [HttpPatch]
     [Route("changeStatus/{taskId:int}")]
     public async Task<IActionResult> ChangeTaskStatus(int taskId, TaskStatusDto statusDto, CancellationToken ct = default)
@@ -146,6 +178,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with {task.TaskId} updated successfully.");
     }
 
+    [Authorize]
     [HttpPatch]
     [Route("prio/{taskId:int}")]
     public async Task<IActionResult> AddTaskPriority(int taskId, TaskPrioDto priorityDto, CancellationToken ct = default)
@@ -168,6 +201,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with {task.TaskId} id updated with {priorityDto.TaskPriority} priority successfully.");
     }
     
+    [Authorize]
     [HttpGet]
     [Route("priofilter/{prioLevel}")]
     public async Task<IActionResult> FilterTasksByPriority([FromRoute]int prioLevel,CancellationToken ct = default)
@@ -181,7 +215,8 @@ public class TaskController : ControllerBase
                 TaskDescription = p.TaskDescription,
                 TaskDate = p.TaskDate,
                 TaskStatus = p.IsTaskCompleted,
-                TaskPriority = p.TaskPriority
+                TaskPriority = p.TaskPriority,
+                UserId = p.UserId
             })
             .ToListAsync(ct);
         if (tasks.Count == 0)
@@ -190,7 +225,8 @@ public class TaskController : ControllerBase
         }
         return Ok(tasks);
     }
-
+    
+    [Authorize(Roles = "Admin")]
     [HttpPatch]
     [Route("{taskId:int}/assign")]
     public async Task<IActionResult> AssignTask([FromRoute]int taskId, [FromBody]AssignUserDto assignDto, CancellationToken ct = default)
@@ -210,13 +246,6 @@ public class TaskController : ControllerBase
         {
             return NotFound($"There are no user with id {assignDto.UserId}.");
         }
-
-        if (assignDto.UserId != _context.Users
-                .Select(u => u.UserId)
-                .FirstOrDefault())
-        {
-            return BadRequest($"There are no user with id {assignDto.UserId}.");
-        }
         if (task.UserId == assignDto.UserId)
         {
             return BadRequest($"Task with {task.TaskId} is already assigned to user with id {assignDto.UserId}.");     
@@ -227,6 +256,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with {task.TaskId} assigned to user with id {assignDto.UserId} successfully.");       
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPatch]
     [Route("reassign/{taskId:int}")]
     public async Task<IActionResult> ReassignTask(int taskId, AssignUserDto reassignDto, CancellationToken ct = default)
@@ -254,6 +284,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with {task.TaskId} reassigned to user with id {reassignDto.UserId} successfully.");       
     }
     
+    [Authorize(Roles = "Admin")]
     [HttpPatch]
     [Route("unassign/{taskId:int}")]
     public async Task<IActionResult> UnassignTask(int taskId, CancellationToken ct = default)
