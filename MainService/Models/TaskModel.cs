@@ -1,13 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using MainService.Enums;
 
 namespace MainService.Models;
-
-enum TaskPriority
-{
-    Low = 1,
-    Medium = 2, 
-    High = 3   
-}
 
 public class TaskModel
 {
@@ -18,5 +12,5 @@ public class TaskModel
     public bool IsTaskCompleted { get; set; }
     public TaskPriority? TaskPriority { get; set; }
     public DateTime TaskDate { get; set; }
-    public int? AssignedUserId { get; set; }
+    public int? UserId { get; set; }
 }

@@ -1,6 +1,7 @@
 using MainService.Data;
 using MainService.Dtos;
 using MainService.Models;
+using MainService.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -19,8 +20,8 @@ public class TaskController : ControllerBase
     }
 
     [HttpPost]
-    [Route("/create")]
-    public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto taskDto)
+    [Route("create")]
+    public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto taskDto, CancellationToken ct = default)
     {
         var task = new TaskModel()
         {
@@ -31,31 +32,31 @@ public class TaskController : ControllerBase
             TaskDate = DateTime.UtcNow
         };
         
-        _context.Tasks.Add(task);
-        _context.SaveChanges();
+        await _context.Tasks.AddAsync(task, ct);
+        await _context.SaveChangesAsync(ct);
         return Ok($"Task {task.TaskName} created successfully.");
     }
 
     [HttpDelete]
-    [Route("delete/{taskId}")]
-    public async Task<IActionResult> DeleteTask(int taskId)
+    [Route("delete/{taskId:int}")]
+    public async Task<IActionResult> DeleteTask(int taskId, CancellationToken ct = default)
     {
         var task = await _context.Tasks
             .Where(t => t.TaskId == taskId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         if (task == null)
         {
             return BadRequest($"There are no task with id {taskId}.");
         }
         
         _context.Tasks.Remove(task);
-        _context.SaveChanges();
-        return Ok($"Task with {task.TaskId} deleted successfully.");       
+        await _context.SaveChangesAsync(ct);
+        return Ok($"Task with id {task.TaskId} has been deleted successfully.");       
     }
     
     [HttpGet]
-    [Route("/get")]
-    public async Task<IActionResult> GetTasks()
+    [Route("get")]
+    public async Task<IActionResult> GetTasks(CancellationToken ct = default)
     {
         var tasks = await _context.Tasks
             .Select(t => new TaskDetailsDto()
@@ -67,7 +68,7 @@ public class TaskController : ControllerBase
                 TaskStatus = t.IsTaskCompleted,
                 TaskPriority = t.TaskPriority
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         if (tasks.Count == 0)
         {
@@ -77,8 +78,8 @@ public class TaskController : ControllerBase
     }
 
     [HttpGet]
-    [Route("/get/{taskId}")]
-    public async Task<IActionResult> GetTask(int taskId, TaskDetailsDto taskDto)
+    [Route("/get/{taskId:int}")]
+    public async Task<IActionResult> GetTask(int taskId, CancellationToken ct = default)
     {
         var task = await _context.Tasks
             .Where(t => t.TaskId == taskId)
@@ -92,7 +93,7 @@ public class TaskController : ControllerBase
                 TaskPriority = t.TaskPriority
                 
             })
-            .ToListAsync();
+            .ToListAsync(ct);
         
         if (taskId != _context.Tasks
                 .Where(t => t.TaskId == taskId)
@@ -105,12 +106,12 @@ public class TaskController : ControllerBase
     }
     
     [HttpPut]
-    [Route("/update/{taskId}")]
-    public async Task<IActionResult> UpdateTask(int taskId, TaskDetailsDto updateDto)
+    [Route("update/{taskId:int}")]
+    public async Task<IActionResult> UpdateTask(int taskId, TaskDetailsDto updateDto, CancellationToken ct = default)
     {
         var task = await _context.Tasks
             .Where(t => t.TaskId == taskId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         
         if (task == null)
         {
@@ -119,17 +120,17 @@ public class TaskController : ControllerBase
 
         task.TaskName = updateDto.TaskName;
         task.TaskDescription = updateDto.TaskDescription;
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(ct);
         return Ok($"Task with {task.TaskId} updated successfully.");
     }
     
     [HttpPatch]
-    [Route("/changeStatus/{taskId}")]
-    public async Task<IActionResult> ChangeTaskStatus(int taskId, TaskDetailsDto statusDto)
+    [Route("changeStatus/{taskId:int}")]
+    public async Task<IActionResult> ChangeTaskStatus(int taskId, TaskStatusDto statusDto, CancellationToken ct = default)
     {
         var task = await _context.Tasks
             .Where(t => t.TaskId == taskId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         
         if (task == null)
         {
@@ -141,17 +142,17 @@ public class TaskController : ControllerBase
         }
 
         task.IsTaskCompleted = statusDto.TaskStatus;
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(ct);
         return Ok($"Task with {task.TaskId} updated successfully.");
     }
 
     [HttpPatch]
-    [Route("prio/{taskId}")]
-    public async Task<IActionResult> AddTaskPriority(int taskId, TaskDetailsDto priorityDto)
+    [Route("prio/{taskId:int}")]
+    public async Task<IActionResult> AddTaskPriority(int taskId, TaskPrioDto priorityDto, CancellationToken ct = default)
     {
         var task = await _context.Tasks
             .Where(t=>t.TaskId == taskId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         
         if (task == null)
         {
@@ -163,7 +164,115 @@ public class TaskController : ControllerBase
         }
         
         task.TaskPriority = priorityDto.TaskPriority;
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(ct);
         return Ok($"Task with {task.TaskId} id updated with {priorityDto.TaskPriority} priority successfully.");
+    }
+    
+    [HttpGet]
+    [Route("priofilter/{prioLevel}")]
+    public async Task<IActionResult> FilterTasksByPriority([FromRoute]int prioLevel,CancellationToken ct = default)
+    {
+        var tasks = await _context.Tasks
+            .Where(p => p.TaskPriority.HasValue && (int)p.TaskPriority.Value == prioLevel)
+            .Select(p => new TaskDetailsDto()
+            {
+                TaskId = p.TaskId,
+                TaskName = p.TaskName,
+                TaskDescription = p.TaskDescription,
+                TaskDate = p.TaskDate,
+                TaskStatus = p.IsTaskCompleted,
+                TaskPriority = p.TaskPriority
+            })
+            .ToListAsync(ct);
+        if (tasks.Count == 0)
+        {
+            return NotFound($"There are no tasks with priority {prioLevel}.");
+        }
+        return Ok(tasks);
+    }
+
+    [HttpPatch]
+    [Route("{taskId:int}/assign")]
+    public async Task<IActionResult> AssignTask([FromRoute]int taskId, [FromBody]AssignUserDto assignDto, CancellationToken ct = default)
+    {
+        var task = await _context.Tasks
+            .Where(t => t.TaskId == taskId)
+            .FirstOrDefaultAsync(ct);
+        if (task == null)
+        {
+            return NotFound($"There are no task with id {taskId}.");
+        }
+
+        var user = await _context.Users
+            .Where(u => u.UserId == assignDto.UserId)
+            .FirstOrDefaultAsync(ct);
+        if (user == null)
+        {
+            return NotFound($"There are no user with id {assignDto.UserId}.");
+        }
+
+        if (assignDto.UserId != _context.Users
+                .Select(u => u.UserId)
+                .FirstOrDefault())
+        {
+            return BadRequest($"There are no user with id {assignDto.UserId}.");
+        }
+        if (task.UserId == assignDto.UserId)
+        {
+            return BadRequest($"Task with {task.TaskId} is already assigned to user with id {assignDto.UserId}.");     
+        }
+        
+        task.UserId = assignDto.UserId;
+        await _context.SaveChangesAsync(ct);
+        return Ok($"Task with {task.TaskId} assigned to user with id {assignDto.UserId} successfully.");       
+    }
+
+    [HttpPatch]
+    [Route("reassign/{taskId:int}")]
+    public async Task<IActionResult> ReassignTask(int taskId, AssignUserDto reassignDto, CancellationToken ct = default)
+    {
+        var task = await _context.Tasks
+            .Where(t => t.TaskId == taskId)
+            .FirstOrDefaultAsync(ct);
+        if (task == null)
+        {
+            return NotFound($"There are no task with id {taskId}.");
+        }
+        if (reassignDto.UserId == task.UserId)
+        {
+            return BadRequest($"Task with {task.TaskId} is already assigned to user with id {reassignDto.UserId}.");      
+        }
+        if (reassignDto.UserId != _context.Users
+                .Select(u => u.UserId)
+                .FirstOrDefault())
+        {
+            return BadRequest($"There are no user with id {reassignDto.UserId}.");
+        }
+        task.UserId = reassignDto.UserId;
+        await _context.SaveChangesAsync(ct);
+        
+        return Ok($"Task with {task.TaskId} reassigned to user with id {reassignDto.UserId} successfully.");       
+    }
+    
+    [HttpPatch]
+    [Route("unassign/{taskId:int}")]
+    public async Task<IActionResult> UnassignTask(int taskId, CancellationToken ct = default)
+    {
+        var task = await _context.Tasks
+            .Where(t => t.TaskId == taskId)
+            .FirstOrDefaultAsync(ct);
+        if (task == null)
+        {
+            return NotFound($"There are no task with id {taskId}.");
+        }
+        if (task.UserId == null)
+        {
+            return BadRequest($"Task with {task.TaskId} is not assigned to any user.");     
+        }
+        
+        task.UserId = null;
+        await _context.SaveChangesAsync(ct);
+        
+        return Ok($"Task with {task.TaskId} unassigned successfully.");       
     }
 }

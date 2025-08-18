@@ -1,4 +1,5 @@
 using MainService.Models;
+using MainService.Enums;
 
 namespace MainService.Dtos;
 

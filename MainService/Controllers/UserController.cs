@@ -20,8 +20,8 @@ public class UserController : ControllerBase
     }
 
     [HttpPost]
-    [Route("/create")]
-    public async Task<IActionResult> CreateUser([FromBody] CreateUserDto createDto)
+    [Route("create")]
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserDto createDto, CancellationToken ct = default)
     {
         var user = new UserModel()
         {
@@ -36,30 +36,30 @@ public class UserController : ControllerBase
         user.UserPassword = hasher.HashPassword(user, createDto.UserPassword);
         
         _context.Users.Add(user);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(ct);
         return Ok($"User {user.UserName} created successfully.");
     }
 
     [HttpDelete]
-    [Route("/delete/{userId}")]
-    public async Task<IActionResult> DeleteUser(int userId)
+    [Route("delete/{userId:int}")]
+    public async Task<IActionResult> DeleteUser(int userId, CancellationToken ct = default)
     {
         var user = await _context.Users
             .Where(u => u.UserId == userId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         if (user == null)
         {
             return BadRequest($"User with id {userId} not found.");
         }
         
         _context.Users.Remove(user);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(ct);
         return Ok($"User with id {userId} deleted successfully.");       
     }
 
     [HttpGet]
-    [Route("/get")]
-    public async Task<IActionResult> GetUsers()
+    [Route("get")]
+    public async Task<IActionResult> GetUsers(CancellationToken ct = default)
     {
         var users = await _context.Users
             .Select(u => new UserDetailsDto()
@@ -68,7 +68,7 @@ public class UserController : ControllerBase
                 UserName = u.UserName,
                 RoleType = u.RoleType
             })
-            .ToListAsync();
+            .ToListAsync(ct);
         if (users.Count() == 0)
         {
             return NotFound($"There are no users.");
@@ -78,17 +78,18 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    [Route("/get/[userId]")]
-    public async Task<IActionResult> GetUser(int userId)
+    [Route("get/{userId:int}")]
+    public async Task<IActionResult> GetUser(int userId, CancellationToken ct = default)
     {
         var user = await _context.Users
+            .Where(u=>u.UserId == userId)
             .Select(u => new UserDetailsDto()
             {
                 UserId = u.UserId,
                 UserName = u.UserName,
                 RoleType = u.RoleType
             })
-            .ToListAsync();
+            .ToListAsync(ct);
         if (userId != _context.Users.Select(u => u.UserId).FirstOrDefault())
         {
             return NotFound($"User with id {userId} not found.");
@@ -98,41 +99,41 @@ public class UserController : ControllerBase
     }
 
     [HttpPut]
-    [Route("update/[userId]")]
-    public async Task<IActionResult> UpdateUser(int userId, [FromBody] UserDetailsDto userDto)
+    [Route("update/{userId:int}")]
+    public async Task<IActionResult> UpdateUser(int userId, [FromBody] UpdateUserDto update, CancellationToken ct = default)
     {
         var user = await _context.Users
             .Where(u => u.UserId == userId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         if (user == null)
         {
             return NotFound($"User with id {userId} not found.");
         }
         
-        user.UserName = userDto.UserName;
-        _context.SaveChanges();
+        user.UserName = update.UserName;
+        await _context.SaveChangesAsync(ct);
         return Ok($"User with id {userId} updated successfully.");
     }
 
     [HttpPatch]
-    [Route("changeRole/[userId]")]
-    public async Task<IActionResult> ChangeUserRole(int userId, [FromBody] UserDetailsDto userDto)
+    [Route("changeRole/{userId:int}")]
+    public async Task<IActionResult> ChangeUserRole(int userId, [FromBody] UpdateRoleDto roleDto, CancellationToken ct = default)
     {
         var user = await _context.Users
             .Where(u => u.UserId == userId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         if (user == null)
         {
             return NotFound($"User with id {userId} not found.");
         }
 
-        if (user.RoleType == userDto.RoleType)
+        if (user.RoleType == roleDto.RoleType)
         {
-            return BadRequest($"User with id {userId} already has role {userDto.RoleType}.");      
+            return BadRequest($"User with id {userId} already has role {roleDto.RoleType}.");      
         }
         
-        user.RoleType = userDto.RoleType;
-        _context.SaveChanges();
+        user.RoleType = roleDto.RoleType;
+        await _context.SaveChangesAsync(ct);
         return Ok($"User with id {userId} updated successfully.");
     }
 }
