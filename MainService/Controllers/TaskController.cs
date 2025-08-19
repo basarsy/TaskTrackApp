@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.IdentityModel.Tokens;
 
 namespace MainService.Controllers;
 
@@ -305,5 +306,44 @@ public class TaskController : ControllerBase
         await _context.SaveChangesAsync(ct);
         
         return Ok($"Task with {task.TaskId} unassigned successfully.");       
+    }
+
+    [HttpGet]
+    [Route("getIncompleteTasks")]
+    public async Task<IActionResult> GetInCompleteTasks(CancellationToken ct = default)
+    {
+        var tasks = await _context.Tasks
+            .Where(t => t.IsTaskCompleted == false)
+            .ToListAsync(ct);
+        if (!tasks.Any())
+        {
+            return NotFound($"There are no incomplete tasks.");
+        }
+        return Ok(tasks);       
+    }
+    
+    [HttpGet]
+    [Route("getCompleteTasks")]
+    public async Task<IActionResult> GetCompleteTasks(CancellationToken ct = default)
+    {
+        var tasks = await _context.Tasks
+            .Where(t => t.IsTaskCompleted == true)
+            .Select(t => new TaskDetailsDto()
+            {
+                TaskId = t.TaskId,
+                TaskName = t.TaskName,
+                TaskDescription = t.TaskDescription,
+                TaskDate = t.TaskDate,
+                TaskStatus = t.IsTaskCompleted,
+                TaskPriority = t.TaskPriority,
+                UserId = t.UserId           
+            })
+            .ToListAsync(ct);
+        if (tasks.IsNullOrEmpty())
+        {
+            return NotFound($"There are no complete tasks.");
+        }
+
+        return Ok(tasks);
     }
 }

@@ -5,48 +5,24 @@ services:
     environment:
       POSTGRES_PASSWORD: "admin123"
       POSTGRES_USER: "postgres"
-  auth:
-    build:
+  main:
+    build: 
       context: .
-      dockerfile: "AuthService/Dockerfile"
+      dockerfile: "MainService/Dockerfile"
     ports:
       - "5001:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      AUTH__JWT__ISSUER: "TaskTrackApp"
-      AUTH__JWT__AUDIENCE: "TaskTrackApp.Client"
-      AUTH__JWT__SECRET: "change-me"
-  user:
-    build: 
+      ConnectionStrings__DefaultConnection: "Host=db;Database=tasktrack;Username=postgres;Password=admin123;"
+  Worker:
+    build:
       context: .
-      dockerfile: "UserService/Dockerfile"
+      dockerfile: "WorkerService/Dockerfile"
     ports:
-      - "5002:8080"
+      - "5001:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      ConnectionStrings__DefaultConnection: "Host=db;Database=udb;Username=postgres;Password=admin123;"
-  task:
-    build: 
-      context: .
-      dockerfile: "TaskService/Dockerfile"
-    ports:
-      - "5003:8080"
-    environment:
-      ASPNETCORE_ENVIRONMENT: "Development"
-      ConnectionStrings__DefaultConnection: "Host=db;Database=tdb;Username=postgres;Password=admin123;"
-      Services__UserServiceBaseUrl: "http://user:80"
-    depends_on:
-      - user
-      - db
-  log:
-    build: 
-      context: .
-      dockerfile: "LogService/Dockerfile"
-    ports:
-      - "5004:8080"
-    environment:
-      ASPNETCORE_ENVIRONMENT: "Development"
-      LOG__LEVEL: "Information"
+      ConnectionStrings__DefaultConnection: "Host=db;Database=tasktrack;Username=postgres;Password=admin123;"
 networks:
   default:
     name: tasktrackapp-net
