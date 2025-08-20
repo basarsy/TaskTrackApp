@@ -17,9 +17,12 @@ namespace MainService.Controllers;
 public class TaskController : ControllerBase
 {
     private readonly AppDbContext _context;
-    public TaskController(AppDbContext context)
+    private readonly ILogger<TaskController> _logger;
+    
+    public TaskController(AppDbContext context, ILogger<TaskController> logger)
     {
         _context = context;
+        _logger = logger;
     }
     
     [Authorize(Roles = "Admin, User")]   
@@ -27,33 +30,48 @@ public class TaskController : ControllerBase
     [Route("create")]
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto taskDto, CancellationToken ct = default)
     {
-        // Check for duplicate task names for the same user
-        var taskName = taskDto.TaskName?.Trim();
-        if (string.IsNullOrWhiteSpace(taskName))
+        _logger.LogInformation("Attempting to create task: {TaskName} for user: {UserId}", taskDto.TaskName, taskDto.UserId);
+        
+        try
         {
-            return BadRequest("Task name cannot be empty.");
+            var taskName = taskDto.TaskName?.Trim();
+            if (string.IsNullOrWhiteSpace(taskName))
+            {
+                _logger.LogWarning("Task creation failed: Empty task name provided for user: {UserId}", taskDto.UserId);
+                return BadRequest("Task name cannot be empty.");
+            }
+            
+            var exists = await _context.Tasks
+                .AnyAsync(t => t.TaskName == taskName && t.UserId == taskDto.UserId, ct);
+            if (exists)
+            {
+                _logger.LogWarning("Task creation failed: Duplicate task name '{TaskName}' for user: {UserId}", taskDto.TaskName, taskDto.UserId);
+                return Conflict($"Task with name '{taskDto.TaskName}' already exists for this user.");
+            }
+            
+            var task = new TaskModel()
+            {
+                TaskName = taskDto.TaskName,
+                TaskDescription = taskDto.TaskDescription,
+                TaskPriority = taskDto.TaskPriority,
+                IsTaskCompleted = taskDto.IsTaskCompleted,
+                UserId = taskDto.UserId,
+                TaskDate = DateTime.UtcNow
+            };
+            
+            await _context.Tasks.AddAsync(task, ct);
+            await _context.SaveChangesAsync(ct);
+            
+            _logger.LogInformation("Task created successfully: {TaskName} (ID: {TaskId}) for user: {UserId}", 
+                task.TaskName, task.TaskId, task.UserId);
+            
+            return Ok($"Task {task.TaskName} created successfully.");
         }
-        
-        var exists = await _context.Tasks
-            .AnyAsync(t => t.TaskName == taskName && t.UserId == taskDto.UserId, ct);
-        if (exists)
+        catch (Exception ex)
         {
-            return Conflict($"Task with name '{taskDto.TaskName}' already exists for this user.");
+            _logger.LogError(ex, "Error creating task: {TaskName} for user: {UserId}", taskDto.TaskName, taskDto.UserId);
+            return StatusCode(500, "An error occurred while creating the task.");
         }
-        
-        var task = new TaskModel()
-        {
-            TaskName = taskDto.TaskName,
-            TaskDescription = taskDto.TaskDescription,
-            TaskPriority = taskDto.TaskPriority,
-            IsTaskCompleted = taskDto.IsTaskCompleted,
-            UserId = taskDto.UserId,
-            TaskDate = DateTime.UtcNow
-        };
-        
-        await _context.Tasks.AddAsync(task, ct);
-        await _context.SaveChangesAsync(ct);
-        return Ok($"Task {task.TaskName} created successfully.");
     }
     
     [Authorize(Roles = "Admin")]   
@@ -210,7 +228,6 @@ public class TaskController : ControllerBase
             return NotFound($"There are no task with id {taskId}.");
         }
         
-        // Allow updating to the same priority (remove the restriction)
         task.TaskPriority = priorityDto.TaskPriority;
         await _context.SaveChangesAsync(ct);
         return Ok($"Task with {task.TaskId} id updated with {priorityDto.TaskPriority} priority successfully.");
