@@ -22,11 +22,25 @@ public class TaskController : ControllerBase
         _context = context;
     }
     
-    [Authorize(Roles = "Admin")]   
+    [Authorize(Roles = "Admin, User")]   
     [HttpPost]
     [Route("create")]
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto taskDto, CancellationToken ct = default)
     {
+        // Check for duplicate task names for the same user
+        var taskName = taskDto.TaskName?.Trim();
+        if (string.IsNullOrWhiteSpace(taskName))
+        {
+            return BadRequest("Task name cannot be empty.");
+        }
+        
+        var exists = await _context.Tasks
+            .AnyAsync(t => t.TaskName == taskName && t.UserId == taskDto.UserId, ct);
+        if (exists)
+        {
+            return Conflict($"Task with name '{taskDto.TaskName}' already exists for this user.");
+        }
+        
         var task = new TaskModel()
         {
             TaskName = taskDto.TaskName,
@@ -87,7 +101,7 @@ public class TaskController : ControllerBase
     
     [Authorize(Roles = "Admin, User")]   
     [HttpGet]
-    [Route("/get/{taskId:int}")]
+    [Route("get/{taskId:int}")]
     public async Task<IActionResult> GetTask(int taskId, CancellationToken ct = default)
     {
         var task = await _context.Tasks
@@ -182,7 +196,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with {task.TaskId} updated successfully.");
     }
     
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin, User")]
     [HttpPatch]
     [Route("prio/{taskId:int}")]
     public async Task<IActionResult> AddTaskPriority(int taskId, TaskPrioDto priorityDto, CancellationToken ct = default)
@@ -195,11 +209,8 @@ public class TaskController : ControllerBase
         {
             return NotFound($"There are no task with id {taskId}.");
         }
-        if (task.TaskPriority == priorityDto.TaskPriority)
-        {
-            return BadRequest($"Task with {task.TaskId} already has priority {priorityDto.TaskPriority}.");      
-        }
         
+        // Allow updating to the same priority (remove the restriction)
         task.TaskPriority = priorityDto.TaskPriority;
         await _context.SaveChangesAsync(ct);
         return Ok($"Task with {task.TaskId} id updated with {priorityDto.TaskPriority} priority successfully.");
