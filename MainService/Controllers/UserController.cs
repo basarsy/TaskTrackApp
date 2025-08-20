@@ -25,15 +25,22 @@ public class UserController : ControllerBase
     [Route("create")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserDto createDto, CancellationToken ct = default)
     {
+        var userName = createDto.UserName?.Trim();
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            return BadRequest("Username cannot be empty.");       
+        }
+        var exists = await _context.Users
+            .AnyAsync(u => u.UserName == userName, ct);
+        if (exists)
+        {
+            return Conflict($"User with name {createDto.UserName} already exists.");      
+        }
         var user = new UserModel()
         {
             UserName = createDto.UserName,
             RoleType = createDto.RoleType
         };
-        if (createDto.UserName == _context.Users.Select(u => u.UserName).FirstOrDefault())
-        {
-            return BadRequest($"User with name {createDto.UserName} already exists.");
-        }
         var hasher = new PasswordHasher<UserModel>();
         user.UserPassword = hasher.HashPassword(user, createDto.UserPassword);
         
@@ -92,11 +99,13 @@ public class UserController : ControllerBase
                 RoleType = u.RoleType
             })
             .ToListAsync(ct);
-        if (userId != _context.Users.Select(u => u.UserId).FirstOrDefault())
+        if (userId != _context.Users
+                .Where(u => u.UserId == userId)
+                .Select(u => u.UserId)
+                .FirstOrDefault())
         {
-            return NotFound($"User with id {userId} not found.");
+            return BadRequest($"There are no user with id {userId}.");
         }
-        
         return Ok(user);
     }
 

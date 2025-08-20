@@ -7,7 +7,7 @@ public class CreateTaskDto
 {
     public string TaskName { get; set; }
     public string TaskDescription { get; set; }
-    public bool TaskStatus { get; set; }
+    public bool IsTaskCompleted { get; set; }
     public TaskPriority? TaskPriority { get; set; }
     public int? UserId { get; set; }
 }

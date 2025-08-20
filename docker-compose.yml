@@ -1,28 +1,35 @@
-
 services:
-  db:
-    image : postgres:16
-    environment:
-      POSTGRES_PASSWORD: "admin123"
-      POSTGRES_USER: "postgres"
-  main:
-    build: 
+  mainservice:
+    build:
       context: .
       dockerfile: "MainService/Dockerfile"
+    container_name: mainservice
     ports:
-      - "5001:8080"
+      - "5091:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      ConnectionStrings__DefaultConnection: "Host=db;Database=tasktrack;Username=postgres;Password=admin123;"
-  Worker:
+      ConnectionStrings__DefaultConnection: "Host=host.docker.internal;Database=tasktrack;Username=postgres;Password=admin123;"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    
+  workerservice:
     build:
       context: .
       dockerfile: "WorkerService/Dockerfile"
+    container_name: workerservice
     ports:
-      - "5001:8080"
+      - "5092:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      ConnectionStrings__DefaultConnection: "Host=db;Database=tasktrack;Username=postgres;Password=admin123;"
+      ConnectionStrings__DefaultConnection: "Host=host.docker.internal;Database=tasktrack;Username=postgres;Password=admin123;"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mainservice:
+        condition: service_started
+    restart: unless-stopped
+
 networks:
   default:
     name: tasktrackapp-net

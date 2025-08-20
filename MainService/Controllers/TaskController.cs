@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace MainService.Controllers;
 
+[Authorize(Roles = "Admin, User")]
 [ApiController]
 [Route("/api/[controller]")]
 
@@ -20,8 +21,8 @@ public class TaskController : ControllerBase
     {
         _context = context;
     }
-
-    [Authorize]
+    
+    [Authorize(Roles = "Admin")]   
     [HttpPost]
     [Route("create")]
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto taskDto, CancellationToken ct = default)
@@ -30,8 +31,9 @@ public class TaskController : ControllerBase
         {
             TaskName = taskDto.TaskName,
             TaskDescription = taskDto.TaskDescription,
-            TaskPriority = 0,
-            IsTaskCompleted = false,
+            TaskPriority = taskDto.TaskPriority,
+            IsTaskCompleted = taskDto.IsTaskCompleted,
+            UserId = taskDto.UserId,
             TaskDate = DateTime.UtcNow
         };
         
@@ -39,8 +41,8 @@ public class TaskController : ControllerBase
         await _context.SaveChangesAsync(ct);
         return Ok($"Task {task.TaskName} created successfully.");
     }
-
-    [Authorize]
+    
+    [Authorize(Roles = "Admin")]   
     [HttpDelete]
     [Route("delete/{taskId:int}")]
     public async Task<IActionResult> DeleteTask(int taskId, CancellationToken ct = default)
@@ -82,8 +84,8 @@ public class TaskController : ControllerBase
         }
         return Ok(tasks);
     }
-
-    [Authorize(Roles = "Admin")]
+    
+    [Authorize(Roles = "Admin, User")]   
     [HttpGet]
     [Route("/get/{taskId:int}")]
     public async Task<IActionResult> GetTask(int taskId, CancellationToken ct = default)
@@ -111,7 +113,8 @@ public class TaskController : ControllerBase
         }
         return Ok(task);
     }
-
+    
+    [Authorize(Roles = "Admin, User")]   
     [HttpGet]
     [Route("gettasksbyuser/{userId:int}")]
     public async Task<IActionResult> GetTasksByUser(int userId, CancellationToken ct = default)
@@ -136,10 +139,10 @@ public class TaskController : ControllerBase
         return Ok(tasks);
     }
     
-    [Authorize]
+    [Authorize(Roles = "Admin, User")]   
     [HttpPut]
     [Route("update/{taskId:int}")]
-    public async Task<IActionResult> UpdateTask(int taskId, TaskDetailsDto updateDto, CancellationToken ct = default)
+    public async Task<IActionResult> UpdateTask(int taskId, UpdateTaskDto updateDto, CancellationToken ct = default)
     {
         var task = await _context.Tasks
             .Where(t => t.TaskId == taskId)
@@ -156,7 +159,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with {task.TaskId} updated successfully.");
     }
     
-    [Authorize]
+    [Authorize(Roles = "Admin, User")]   
     [HttpPatch]
     [Route("changeStatus/{taskId:int}")]
     public async Task<IActionResult> ChangeTaskStatus(int taskId, TaskStatusDto statusDto, CancellationToken ct = default)
@@ -178,8 +181,8 @@ public class TaskController : ControllerBase
         await _context.SaveChangesAsync(ct);
         return Ok($"Task with {task.TaskId} updated successfully.");
     }
-
-    [Authorize]
+    
+    [Authorize(Roles = "Admin")]
     [HttpPatch]
     [Route("prio/{taskId:int}")]
     public async Task<IActionResult> AddTaskPriority(int taskId, TaskPrioDto priorityDto, CancellationToken ct = default)
@@ -202,7 +205,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with {task.TaskId} id updated with {priorityDto.TaskPriority} priority successfully.");
     }
     
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     [Route("priofilter/{prioLevel}")]
     public async Task<IActionResult> FilterTasksByPriority([FromRoute]int prioLevel,CancellationToken ct = default)
@@ -256,7 +259,7 @@ public class TaskController : ControllerBase
         await _context.SaveChangesAsync(ct);
         return Ok($"Task with {task.TaskId} assigned to user with id {assignDto.UserId} successfully.");       
     }
-
+    
     [Authorize(Roles = "Admin")]
     [HttpPatch]
     [Route("reassign/{taskId:int}")]
@@ -273,15 +276,15 @@ public class TaskController : ControllerBase
         {
             return BadRequest($"Task with {task.TaskId} is already assigned to user with id {reassignDto.UserId}.");      
         }
-        if (reassignDto.UserId != _context.Users
-                .Select(u => u.UserId)
-                .FirstOrDefault())
+        
+        var userExists = await _context.Users.AnyAsync(u=>u.UserId == reassignDto.UserId, ct);
+        if (!userExists)
         {
-            return BadRequest($"There are no user with id {reassignDto.UserId}.");
+            return NotFound($"There are no user with id {reassignDto.UserId}.");      
         }
+        
         task.UserId = reassignDto.UserId;
         await _context.SaveChangesAsync(ct);
-        
         return Ok($"Task with {task.TaskId} reassigned to user with id {reassignDto.UserId} successfully.");       
     }
     
@@ -308,6 +311,7 @@ public class TaskController : ControllerBase
         return Ok($"Task with {task.TaskId} unassigned successfully.");       
     }
 
+    [AllowAnonymous]
     [HttpGet]
     [Route("getIncompleteTasks")]
     public async Task<IActionResult> GetInCompleteTasks(CancellationToken ct = default)
@@ -315,13 +319,10 @@ public class TaskController : ControllerBase
         var tasks = await _context.Tasks
             .Where(t => t.IsTaskCompleted == false)
             .ToListAsync(ct);
-        if (!tasks.Any())
-        {
-            return NotFound($"There are no incomplete tasks.");
-        }
         return Ok(tasks);       
     }
     
+    [AllowAnonymous]
     [HttpGet]
     [Route("getCompleteTasks")]
     public async Task<IActionResult> GetCompleteTasks(CancellationToken ct = default)
@@ -339,11 +340,6 @@ public class TaskController : ControllerBase
                 UserId = t.UserId           
             })
             .ToListAsync(ct);
-        if (tasks.IsNullOrEmpty())
-        {
-            return NotFound($"There are no complete tasks.");
-        }
-
         return Ok(tasks);
     }
 }
