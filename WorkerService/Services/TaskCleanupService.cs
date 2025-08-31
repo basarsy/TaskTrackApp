@@ -30,15 +30,10 @@ public class TaskCleanupService
             
             _logger.LogInformation("Cleanup cutoff date: {CutoffDate}", cutoffDate);
             
-            // In a real implementation, you would:
-            // 1. Get all completed tasks older than cutoff date
-            // 2. Archive or delete them
-            // 3. Update related data
-            
-            // Mock implementation:
+            // Mock 
             await SimulateTaskCleanup(cutoffDate, cleanupSummary);
             
-            // Send completion notification
+            // Send notification
             await SendCleanupNotification(cleanupSummary);
             
             _logger.LogInformation("Task cleanup completed. Tasks processed: {ProcessedCount}, Errors: {ErrorCount}", 
@@ -48,7 +43,7 @@ public class TaskCleanupService
         {
             _logger.LogError(ex, "Error during task cleanup job");
             await SendCleanupErrorNotification(ex);
-            throw; // Re-throw to trigger Hangfire retry
+            throw; // Trigger Hangfire retry
         }
     }
 
@@ -61,7 +56,7 @@ public class TaskCleanupService
         {
             var cleanupSummary = new TaskCleanupSummary();
             
-            // Mock implementation for orphaned tasks cleanup
+            // Mock
             await SimulateOrphanedTasksCleanup(cleanupSummary);
             
             await SendOrphanedTasksCleanupNotification(cleanupSummary);

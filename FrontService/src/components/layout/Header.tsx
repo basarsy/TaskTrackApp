@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, User, Shield } from 'lucide-react';
 
@@ -44,6 +45,8 @@ export const Header: React.FC = () => {
               </Badge>
             </div>
           </div>
+
+          <ThemeToggle />
 
           <Button
             variant="ghost"

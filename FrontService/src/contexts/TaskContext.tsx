@@ -144,6 +144,7 @@ export const TaskProvider: React.FC<TaskProviderProps> = ({ children }) => {
     };
 
     const updateTask = async (taskId: number, updates: Partial<Task>) => {
+
         setIsLoading(true);
         setError(null);
 
@@ -164,6 +165,17 @@ export const TaskProvider: React.FC<TaskProviderProps> = ({ children }) => {
             // Handle priority change
             if (updates.taskPriority !== undefined) {
                 await apiService.changeTaskPriority(taskId, { taskPriority: updates.taskPriority });
+            }
+
+            // Handle user assignment change
+            if (updates.userId !== undefined) {
+                if (updates.userId === null) {
+                    // Unassign task
+                    await apiService.unassignTask(taskId);
+                } else {
+                    // Assign task to user
+                    await apiService.assignTask(taskId, { userId: updates.userId });
+                }
             }
 
             // Update local state instead of reloading all tasks

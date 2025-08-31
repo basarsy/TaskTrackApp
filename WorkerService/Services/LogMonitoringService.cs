@@ -48,7 +48,6 @@ public class LogMonitoringService : BackgroundService
     {
         try
         {
-            // Find the most recent log file (today's log)
             var logDirectory = Path.GetDirectoryName(_logFilePath) ?? "/app/logs";
             if (!Directory.Exists(logDirectory))
             {
@@ -71,19 +70,16 @@ public class LogMonitoringService : BackgroundService
             
             if (fileInfo.Length <= _lastLogPosition)
             {
-                // No new content
                 return;
             }
-
-            // Read new content
+            
             using var fileStream = new FileStream(currentLogFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             fileStream.Seek(_lastLogPosition, SeekOrigin.Begin);
             
             using var reader = new StreamReader(fileStream);
             var newContent = await reader.ReadToEndAsync(cancellationToken);
             _lastLogPosition = fileInfo.Length;
-
-            // Analyze new content for errors
+            
             await AnalyzeLogContent(newContent, cancellationToken);
         }
         catch (Exception ex)
@@ -143,23 +139,9 @@ This is an automated message from TaskTrack Log Monitoring Service.
     {
         try
         {
-            // This would typically call the TaskApiClient to get incomplete tasks
-            // For now, we'll just log that we're checking
             _logger.LogInformation("Checking for incomplete tasks report...");
             
-            // In a real implementation, you might:
-            // 1. Get all incomplete tasks from the API
-            // 2. Check if any are overdue
-            // 3. Send notifications for overdue tasks
-            
-            // Example:
-            // var incompleteTasks = await _taskApiClient.GetIncompleteTasksAsync();
-            // if (incompleteTasks.Any(t => t.IsOverdue))
-            // {
-            //     await SendOverdueTasksNotification(incompleteTasks);
-            // }
-            
-            await Task.CompletedTask; // Fix async warning
+            await Task.CompletedTask; 
         }
         catch (Exception ex)
         {

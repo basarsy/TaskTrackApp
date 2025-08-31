@@ -30,7 +30,6 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Add Serilog
     builder.Host.UseSerilog();
 
     builder.Services.AddHttpClient<TaskApiClient>(client =>
@@ -42,12 +41,10 @@ try
     builder.Services.AddSingleton<IEmailService, FakeEmailService>();
     builder.Services.AddScoped<TaskCleanupService>();
 
-    // Add controllers for job management
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
 
-    // Register background services
     builder.Services.AddHostedService<Worker>();
     builder.Services.AddHostedService<LogMonitoringService>();
 
@@ -92,7 +89,6 @@ try
         });
     }
 
-    // Add controllers
     app.MapControllers();
         
     RecurringJob.AddOrUpdate<DailyReminderJobs>(

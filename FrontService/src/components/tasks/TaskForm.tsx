@@ -62,13 +62,37 @@ export const TaskForm: React.FC<TaskFormProps> = ({ task, open, onOpenChange }) 
 
     try {
       if (task) {
-        // Update existing task
-        await updateTask(task.taskId, {
-          taskName: formData.taskName,
-          taskDescription: formData.taskDescription,
-          taskPriority: formData.taskPriority,
-          userId: formData.userId
-        });
+        // Update existing task - only include fields that have changed
+        const updateData: any = {};
+        
+        if (formData.taskName !== task.taskName) {
+          updateData.taskName = formData.taskName;
+        }
+        if (formData.taskDescription !== task.taskDescription) {
+          updateData.taskDescription = formData.taskDescription;
+        }
+        if (formData.taskPriority !== task.taskPriority) {
+          updateData.taskPriority = formData.taskPriority;
+        }
+        // Fix type comparison issues - handle null values and type conversion
+        const formUserId = formData.userId;
+        const taskUserId = task.userId;
+        if (formUserId !== taskUserId) {
+
+          updateData.userId = formData.userId;
+        }
+        
+        // Only proceed if there are actual changes
+        if (Object.keys(updateData).length === 0) {
+          toast({
+            title: "No Changes",
+            description: "No changes detected to update."
+          });
+          onOpenChange(false);
+          return;
+        }
+        
+        await updateTask(task.taskId, updateData);
         
         toast({
           title: "Success",

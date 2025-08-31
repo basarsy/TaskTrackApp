@@ -21,7 +21,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) =>
   const { changeTaskStatus, users } = useTask();
   const { user } = useAuth();
   
-  const assignedUser = users.find(u => u.userId === task.userId);
+  // For regular users, if the task is assigned to them, show them as assigned
+  // even if the users array is empty (since non-admins don't load all users)
+  const assignedUser = users.find(u => u.userId === task.userId) || 
+    (task.userId === user?.userId ? { userId: user.userId, userName: user.userName, roleType: user.roleType } : null);
   
   const handleToggleComplete = () => {
     changeTaskStatus(task.taskId, !task.isTaskCompleted);

@@ -27,7 +27,7 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Add Serilog
+   
     builder.Host.UseSerilog();
 
     var jwtSettings = builder.Configuration.GetSection("JwtSettings");

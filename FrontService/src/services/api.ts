@@ -1,6 +1,9 @@
 // Use environment variable for API base URL
 // In development: http://localhost:5091/api  
 // In production/Docker: /api (proxied by nginx)
+// Use environment variable for API base URL
+// In development: http://localhost:5091/api  
+// In production/Docker: /api (proxied by nginx)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5091/api');
 
 // Types matching your backend DTOs
